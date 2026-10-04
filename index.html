@@ -34,8 +34,8 @@ button.go{font:600 1.1rem 'Barlow Condensed',sans-serif;padding:9px 22px;border:
 button.close-panel{font:600 1rem 'Barlow Condensed',sans-serif;padding:6px 14px;border:0;border-radius:6px;background:var(--mute);color:var(--paper);cursor:pointer;margin-left:10px}
 button.close-warning{font:600 0.9rem 'Barlow Condensed',sans-serif;padding:4px 12px;border:0;border-radius:4px;background:var(--ink);color:var(--paper);cursor:pointer;margin-left:auto}
 details{margin-top:12px;color:var(--mute);font-size:.9rem}
-#status{margin:10px 0 0;color:var(--mute);min-height:1.5em}
-#status.err{color:var(--lose)}
+#k-status{margin:10px 0 0;color:var(--mute);min-height:1.5em}
+#k-status.err{color:var(--lose)}
 .warning-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;color:#333}
 .warning-banner.hidden{display:none}
 .warning-banner strong{color:#ff6b35}
@@ -207,7 +207,7 @@ function render(d){
       if(f.time){
         h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)}).`:`<b>no time target</b>.`}</div>`;
       } else {
-        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:\"Enter both average times for a target.\"}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:\"\"}</div>`;
+        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:""}</div>`;
       }
     }
     if(d.apm!==1) h+=`<p class="note lose">This war has ${d.apm} attacks per member; turn order may not alternate, so treat this as a rough guide.</p>`;
@@ -271,7 +271,7 @@ async function cocGet(base,key,tag){
 }
 async function keyPull(){
   const st=(m,e)=>{ const el=$("k-status"); el.textContent=m; el.className=e?"err":""; };
-  const base=($("k-api").value.trim()||"https://cocproxy.royaleapi.dev").replace(/\/+$/,"" );
+  const base=($("k-api").value.trim()||"https://cocproxy.royaleapi.dev").replace(/\/+$/,"");
   const key=$("k-key").value.trim(), tag=normTag($("k-tag").value), search=normTag($("k-search").value);
   if(!key) return st("Paste your API key.",true);
   if(!tag) return st("Enter your clan tag.",true);
@@ -326,7 +326,7 @@ function tab(which){
   if(which==="manual") manual();
 }
 $("t-manual").onclick=()=>tab("manual"); $("t-key").onclick=()=>tab("key");
-tab("key");
+tab("manual");
 </script>
 </body>
 </html>
