@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clincher – what your clan needs to win</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#e9eef4;--card:#f8fafc;--ink:#13213c;--mute:#5a6a85;--line:#c5d0e0;--gold:#e8a900;--win:#1f7a4d;--lose:#b3372f;--tie:#8a5a00}
+@media (prefers-color-scheme:dark){:root{--paper:#0f1a2e;--card:#16253f;--ink:#e8eef8;--mute:#98a8c4;--line:#2b3d5e;--gold:#f2b705;--win:#4cc38a;--lose:#ff7a70;--tie:#f2b705}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:28px 16px 64px}
+h1,h2,.num{font-family:'Barlow Condensed',Impact,sans-serif;font-weight:700;letter-spacing:.01em}
+h1{font-size:2.6rem;margin:0;line-height:1}
+.sub{color:var(--mute);margin:.4rem 0 1.4rem;max-width:60ch}
+[role=tablist]{display:flex;gap:6px;margin-bottom:12px}
+[role=tab]{font:600 1.1rem 'Barlow Condensed',sans-serif;padding:8px 18px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;border-radius:6px}
+[role=tab][aria-selected=true]{background:var(--ink);color:var(--paper)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}}
+h2{font-size:1.4rem;margin:0 0 8px}
+label{display:block;font-size:.9rem;color:var(--mute);margin-top:8px}
+input,select{width:100%;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:10px}
+.row>div{flex:1;min-width:150px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:12px}
+.chk input{width:auto}
+button.go{font:600 1.1rem 'Barlow Condensed',sans-serif;padding:9px 22px;border:0;border-radius:6px;background:var(--gold);color:#13213c;cursor:pointer}
+details{margin-top:12px;color:var(--mute);font-size:.9rem}
+#status{margin:10px 0 0;color:var(--mute);min-height:1.5em}
+#status.err{color:var(--lose)}
+#out{margin-top:18px}
+.score{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;text-align:center}
+.score .num{font-size:2.2rem;line-height:1.1}
+.score small{display:block;color:var(--mute);font:400 .9rem Barlow,sans-serif}
+.vs{color:var(--mute)}
+.lead{text-align:center;margin:6px 0 0;color:var(--mute)}
+.verdict{margin-top:16px;border-top:3px solid var(--gold);padding-top:14px}
+.verdict h2{font-size:1.7rem}
+.opt{display:grid;grid-template-columns:90px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.opt .num{font-size:1.8rem;color:var(--gold)}
+.opt b{font-weight:500}
+.win{color:var(--win)}.lose{color:var(--lose)}.tie{color:var(--tie)}
+.note{color:var(--mute);font-size:.9rem;margin-top:10px}
+.timebox{margin-top:12px;padding:10px 12px;background:var(--paper);border-radius:6px}
+</style>
+</head>
+<body>
+<main>
+<h1>Clincher</h1>
+<p class="sub">Esports war down to the last attacks? See the stars, percentage and time the next attacker needs to lock in the win.</p>
+
+<div role="tablist" aria-label="Mode">
+  <button role="tab" id="t-manual" aria-selected="true" aria-controls="p-manual">Manual</button>
+  <button role="tab" id="t-auto" aria-selected="false" aria-controls="p-auto">Automatic</button>
+</div>
+
+<section class="panel" id="p-manual" role="tabpanel" aria-labelledby="t-manual">
+  <div class="cols">
+    <div id="m-us"><h2>Your clan</h2></div>
+    <div id="m-opp"><h2>Opponent</h2></div>
+  </div>
+  <div class="row">
+    <div><label for="m-next">Next to attack (only matters with 1 attack left each)</label>
+      <select id="m-next"><option value="us">Your clan</option><option value="opp">Opponent</option></select></div>
+    <div><label for="m-apm">Attacks per member</label><input id="m-apm" type="number" min="1" value="1"></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="m-esports" checked> Esports war (average attack time breaks ties)</label>
+</section>
+
+<section class="panel" id="p-auto" role="tabpanel" aria-labelledby="t-auto" hidden>
+  <div class="row">
+    <div><label for="a-tag">Your clan tag</label><input id="a-tag" placeholder="#2ABC123" autocomplete="off"></div>
+    <div><label for="a-search">Opponent tag (only if your war log is private)</label><input id="a-search" placeholder="optional" autocomplete="off"></div>
+    <button class="go" id="a-go">Track war</button>
+  </div>
+  <label class="chk"><input type="checkbox" id="a-live" checked> Refresh every <input id="a-sec" type="number" min="2" value="5" style="width:64px"> seconds</label>
+  <details><summary>Bot address</summary>
+    <label for="a-api">Base URL of your bot's API</label>
+    <input id="a-api" placeholder="https://your-bot-host.example">
+  </details>
+  <p id="status" role="status"></p>
+</section>
+
+<div id="out" aria-live="polite"></div>
+<p class="note">Assumes the next hit lands on a base not yet attacked, so stars add up and the team's destruction % rises by (hit % ÷ team size). Exact forecasts start once two or fewer attacks remain.</p>
+</main>
+
+<script>
+// Set this to your bot's public address, or fill it in under "Bot address" on the page.
+const DEFAULT_API_BASE = "";
+
+const $ = id => document.getElementById(id);
+const store = { get(k){ try{ return localStorage.getItem(k) || ""; }catch{ return ""; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
+
+// ---- Math (mirrors determineWarOutcome / computeClinchInfo in trackwar.js) ----
+function fmt(s){ if(s==null||!isFinite(s)) return "n/a"; const t=Math.round(s), m=Math.floor(t/60); return m>0?`${m}m ${t%60}s`:`${t}s`; }
+function parseTime(v){ v=String(v||"").trim(); if(!v) return null; if(v.includes(":")){ const [m,s]=v.split(":"); const n=(+m)*60+(+s); return isFinite(n)?n:null; } const n=+v; return isFinite(n)?n:null; }
+
+function outcome(a,b,esports){
+  if(a.stars!==b.stars) return a.stars>b.stars?"us":"opp";
+  if(a.pct!==b.pct) return a.pct>b.pct?"us":"opp";
+  if(esports && a.avg!=null && b.avg!=null && a.avg!==b.avg) return a.avg<b.avg?"us":"opp";
+  return "draw";
+}
+
+function forecast({us,opp,apm,next,esports}){
+  const ur=us.size*apm-us.used, or=opp.size*apm-opp.used, total=ur+or;
+  if(total<=0) return {kind:"over"};
+  if(total>2 || (total===2 && (ur!==1||or!==1))) return {kind:"many",total};
+  const att = total===1 ? (ur===1?"us":"opp") : next;
+  const oppAfter = total===2;
+  const A = att==="us"?us:opp, B = att==="us"?opp:us;
+  const worstStars = B.stars + (oppAfter?3:0);
+  const worstPct = B.pct + (oppAfter?100/B.size:0);
+
+  let time=null;
+  if(!oppAfter && esports && B.avg!=null){
+    const after=A.used+1, tie=B.avg*after-(A.avg!=null?A.avg*A.used:0);
+    time={tie, win:Math.ceil(tie)-1};
+  }
+  const rows=[1,2,3].map(x=>{
+    const total=A.stars+x;
+    if(total<worstStars) return {x,res:"short"};
+    if(total>worstStars) return {x,res:"clinch",any:true};
+    if(x===3){
+      const p=A.pct+100/A.size;
+      if(p>worstPct) return {x,res:"clinch",any:true};
+      if(p===worstPct) return {x,res:"tie",at:p};
+      return {x,res:"short"};
+    }
+    const tp=(worstPct-A.pct)*A.size;
+    if(tp>100) return {x,res:"short"};
+    if(tp<=0) return {x,res:"clinch",any:true};
+    const need=Math.floor(tp)+1;
+    if(need>100) return {x,res:"tie",at:tp};
+    return {x,res:"clinch",need,tp};
+  });
+  const edge = (A.avg!=null&&B.avg!=null&&A.avg!==B.avg) ? (A.avg<B.avg?"attacker":"opponent") : null;
+  return {kind:"clinch",att,rows,time,edge,oppAfter};
+}
+
+// ---- Rendering ----
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function render(d){
+  const {us,opp,esports}=d, f=forecast(d), lead=outcome(us,opp,esports);
+  const side=s=>`<div><div class="num">${s.stars}★ · ${s.pct.toFixed(2)}%</div><small>${esc(s.name)}${esports?` · ⏱ ${fmt(s.avg)}`:""} · ${s.used}/${s.size*d.apm} attacks</small></div>`;
+  let h=`<div class="panel"><div class="score">${side(us)}<span class="vs">vs</span>${side(opp)}</div>`;
+  h+=`<p class="lead">${{us:`${esc(us.name)} currently ahead`,opp:`${esc(opp.name)} currently ahead`,draw:"Currently level"}[lead]}</p>`;
+  if(d.meta) h+=`<p class="lead">${esc(d.meta)}</p>`;
+
+  if(f.kind==="over"){
+    h+=`<div class="verdict"><h2>War complete</h2><p>${{us:esc(us.name)+" wins",opp:esc(opp.name)+" wins",draw:"Draw"}[lead]}.</p></div>`;
+  } else if(f.kind==="many"){
+    h+=`<div class="verdict"><h2>${f.total} attacks left in total</h2><p>Too many to forecast exactly. ${us.stars!==opp.stars?`Star gap: ${Math.abs(us.stars-opp.stars)}.`:`Stars are level.`} Come back when two or fewer remain.</p></div>`;
+  } else {
+    const A=f.att==="us"?us:opp, B=f.att==="us"?opp:us;
+    h+=`<div class="verdict"><h2>${esc(A.name)} attacks next</h2>
+    <p class="note" style="margin-top:0">${f.oppAfter?`${esc(B.name)} still has an attack afterwards, so the target assumes a perfect hit from them (+3★).`:`${esc(B.name)}'s total is final.`}</p>`;
+    for(const r of f.rows){
+      let t;
+      if(r.res==="clinch") t=r.any?`<b class="win">Any ${r.x}★ hit wins</b>`:`<b class="win">${r.x}★ with ${r.need}%+ wins</b>`;
+      else if(r.res==="tie") t=`<b class="tie">Ties at exactly ${r.at.toFixed(2)}% team average</b> — ${esports?"average time decides":"a draw"}`;
+      else t=`<b class="lose">Can't clinch with ${r.x}★</b>`;
+      if(r.res==="clinch"&&!r.any) t+=`<br><span class="note">Tie point ${r.tp.toFixed(2)}%; the hit must beat it.</span>`;
+      h+=`<div class="opt"><span class="num">${"★".repeat(r.x)}</span><div>${t}</div></div>`;
+    }
+    if(esports){
+      if(f.time){
+        h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)} ties the average).`:`— no time is fast enough to win on average.`}</div>`;
+      } else {
+        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average so far: ${f.edge==="attacker"?esc(A.name):esc(B.name)}.`:""}</div>`;
+      }
+    }
+    if(d.apm!==1) h+=`<p class="note lose">This war has ${d.apm} attacks per member; turn order may not alternate, so treat this as a rough guide.</p>`;
+    h+=`</div>`;
+  }
+  $("out").innerHTML=h+`</div>`;
+}
+
+// ---- Manual mode ----
+function sideForm(root,prefix,name){
+  $(root).insertAdjacentHTML("beforeend",`
+   <label for="${prefix}-name">Name</label><input id="${prefix}-name" value="${name}">
+   <label for="${prefix}-size">Team size</label><input id="${prefix}-size" type="number" min="1" value="5">
+   <label for="${prefix}-stars">Stars</label><input id="${prefix}-stars" type="number" min="0" value="0">
+   <label for="${prefix}-pct">Destruction % (team average)</label><input id="${prefix}-pct" type="number" min="0" max="100" step="0.01" value="0">
+   <label for="${prefix}-used">Attacks used</label><input id="${prefix}-used" type="number" min="0" value="0">
+   <label for="${prefix}-avg">Average attack time (m:ss)</label><input id="${prefix}-avg" placeholder="e.g. 1:45">`);
+}
+sideForm("m-us","u","Your clan"); sideForm("m-opp","o","Opponent");
+const readSide=p=>({name:$(p+"-name").value||"Clan",size:Math.max(1,+$(p+"-size").value||1),stars:+$(p+"-stars").value||0,pct:+$(p+"-pct").value||0,used:+$(p+"-used").value||0,avg:parseTime($(p+"-avg").value)});
+function manual(){ render({us:readSide("u"),opp:readSide("o"),apm:Math.max(1,+$("m-apm").value||1),next:$("m-next").value,esports:$("m-esports").checked}); }
+$("p-manual").addEventListener("input",manual);
+
+// ---- Automatic mode ----
+let timer=null;
+const normTag=t=>{t=t.trim().toUpperCase(); return t&&!t.startsWith("#")?"#"+t:t;};
+function status(msg,err){ const s=$("status"); s.textContent=msg; s.className=err?"err":""; }
+async function pull(){
+  const base=($("a-api").value||DEFAULT_API_BASE).replace(/\/+$/,"");
+  const tag=normTag($("a-tag").value);
+  if(!base) return status("Add your bot's address under “Bot address” first.",true);
+  if(!tag) return status("Enter your clan tag.",true);
+  const search=normTag($("a-search").value);
+  const url=`${base}/api/war?clan=${encodeURIComponent(tag)}${search?`&search=${encodeURIComponent(search)}`:""}`;
+  try{
+    const res=await fetch(url), j=await res.json();
+    if(!j.ok){ status(j.error||"No war found.",true); return; }
+    status(`Updated ${new Date().toLocaleTimeString()}`);
+    const left=j.endTime?Math.max(0,(j.endTime-Date.now())/1000):null;
+    render({us:j.us,opp:j.opp,apm:j.attacksPerMember||1,next:j.nextAttacker||"us",esports:j.esports,
+      meta:`${j.state==="preparation"?"Preparation day":j.state==="inWar"?"Battle day":j.state}${left!=null&&j.state==="inWar"?` · ${fmt(left)} left`:""}${j.esports?" · esports":""}`});
+  }catch(e){
+    status("Couldn't reach the bot. Check the address, that it's running, and that it's served over https if this page is.",true);
+  }
+}
+function startAuto(){
+  clearInterval(timer); store.set("tag",$("a-tag").value); store.set("search",$("a-search").value); store.set("api",$("a-api").value);
+  pull();
+  if($("a-live").checked) timer=setInterval(pull,Math.max(2,+$("a-sec").value||5)*1000);
+}
+$("a-go").addEventListener("click",startAuto);
+$("a-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startAuto(); });
+$("a-tag").value=store.get("tag"); $("a-search").value=store.get("search"); $("a-api").value=store.get("api")||DEFAULT_API_BASE;
+
+// ---- Tabs ----
+function tab(which){
+  for(const n of ["manual","auto"]){ $("t-"+n).setAttribute("aria-selected",n===which); $("p-"+n).hidden=n!==which; }
+  $("out").innerHTML=""; clearInterval(timer);
+  if(which==="manual") manual();
+}
+$("t-manual").onclick=()=>tab("manual"); $("t-auto").onclick=()=>tab("auto");
+manual();
+</script>
+</body>
+</html>
