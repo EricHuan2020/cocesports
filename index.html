@@ -112,11 +112,12 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 <p class="note">Assumes the next hit lands on a base not yet attacked, so stars add up and the team's destruction % rises by (hit % ÷ team size). Exact forecasts start once two or fewer attacks remain.</p>
 </main>
 
+<script src="./config.js"></script>
 <script>
 // Your bot's address (bot-hosting.net panel > Network). Can also be changed under "Bot address" on the page.
 const DEFAULT_API_BASE = "http://fi3.bot-hosting.net:25329";
 // Optional default key for deployments that intentionally want a shared key.
-// Keep this empty in source control unless you are intentionally managing a non-secret deployment key.
+// Keep this unset in source control; use config.js or an environment variable during deployment.
 const DEFAULT_API_KEY = (typeof window !== "undefined" && window.COC_DEFAULT_KEY) || "";
 
 const $ = id => document.getElementById(id);
@@ -197,7 +198,7 @@ function render(d){
     }
     if(esports){
       if(f.time){
-        h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)}):":"<b>no time target</b>"}</div>`;
+        h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)}).`:`<b>no time target</b>.`}</div>`;
       } else {
         h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:""}</div>`;
       }
