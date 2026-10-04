@@ -1,32 +1,19 @@
 # cocesports
 
-This app supports a default Clash of Clans API key for deployments, but the key should never be committed to GitHub.
+This app includes a default Clash of Clans API key for the hosted site so the API tab works immediately.
 
-## Local setup
+## How to use it
 
-1. Copy the example file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Add your key to `.env`:
-   ```env
-   COC_DEFAULT_KEY=your_key_here
-   ```
-3. Generate the runtime config file before deploying:
-   ```bash
-   node scripts/generate-config.js
-   ```
-4. The generated `config.js` file is git-ignored and contains:
-   ```js
-   window.COC_DEFAULT_KEY = "your_key_here";
-   ```
+1. Open the API key tab.
+2. Copy your clan tag exactly as shown in Clash of Clans (for example: `#2ABC123`).
+3. Paste it into the clan tag field.
+4. If the war log is private, also paste the opponent tag.
+5. The page will refresh automatically, but there can be a short delay before new attacks show up because Clash of Clans caches war data for a little while.
 
-## Deployment
+## Note about delay
 
-- Keep secrets in your host environment or secret manager.
-- Do not commit real API keys to this repo.
-- The page loads `config.js` at runtime and uses it as the default key if present.
+War data is not always instant. After an attack lands, it can take a short time before the API shows the updated result, so the calculator may lag by a few seconds to a minute depending on API caching.
 
-## Optional: force user-entered keys only
+## Deployment note
 
-If you want to disable the default key path completely, remove the `window.COC_DEFAULT_KEY` usage from `index.html` and leave the API key field blank unless the user pastes their own key.
+This default key is intentionally provided for the hosted version so people can use the page without entering their own key manually. If you want to remove it later, delete the default key from the runtime config and keep the key field blank unless a user pastes their own key.
