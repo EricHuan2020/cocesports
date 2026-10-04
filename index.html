@@ -31,6 +31,7 @@ input,select{width:100%;font:inherit;padding:7px 9px;border:1px solid var(--line
 .chk{display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:12px}
 .chk input{width:auto}
 button.go{font:600 1.1rem 'Barlow Condensed',sans-serif;padding:9px 22px;border:0;border-radius:6px;background:var(--gold);color:#13213c;cursor:pointer}
+button.close-panel{font:600 1rem 'Barlow Condensed',sans-serif;padding:6px 14px;border:0;border-radius:6px;background:var(--mute);color:var(--paper);cursor:pointer;margin-left:10px}
 details{margin-top:12px;color:var(--mute);font-size:.9rem}
 #status{margin:10px 0 0;color:var(--mute);min-height:1.5em}
 #status.err{color:var(--lose)}
@@ -48,6 +49,7 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 .win{color:var(--win)}.lose{color:var(--lose)}.tie{color:var(--tie)}
 .note{color:var(--mute);font-size:.9rem;margin-top:10px}
 .timebox{margin-top:12px;padding:10px 12px;background:var(--paper);border-radius:6px}
+.setup-collapsed{display:none}
 </style>
 </head>
 <body>
@@ -57,7 +59,6 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 
 <div role="tablist" aria-label="Mode">
   <button role="tab" id="t-manual" aria-selected="true" aria-controls="p-manual">Manual</button>
-  <button role="tab" id="t-auto" aria-selected="false" aria-controls="p-auto">Bot</button>
   <button role="tab" id="t-key" aria-selected="false" aria-controls="p-key">API key</button>
 </div>
 
@@ -74,38 +75,32 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
   <label class="chk"><input type="checkbox" id="m-esports" checked> Esports war (average attack time breaks ties)</label>
 </section>
 
-<section class="panel" id="p-auto" role="tabpanel" aria-labelledby="t-auto" hidden>
-  <div class="row">
-    <div><label for="a-tag">Your clan tag</label><input id="a-tag" placeholder="#2ABC123" autocomplete="off"></div>
-    <div><label for="a-search">Opponent tag (only if your war log is private)</label><input id="a-search" placeholder="optional" autocomplete="off"></div>
-    <button class="go" id="a-go">Track war</button>
-  </div>
-  <label class="chk"><input type="checkbox" id="a-live" checked> Refresh every <input id="a-sec" type="number" min="2" value="5" style="width:64px"> seconds</label>
-  <details><summary>Bot address</summary>
-    <label for="a-api">Base URL of your bot's API</label>
-    <input id="a-api" placeholder="https://worker-winter-bonus-4f8a.zhongeric02.workers.dev/">
-  </details>
-  <p id="status" role="status"></p>
-</section>
-
 <section class="panel" id="p-key" role="tabpanel" aria-labelledby="t-key" hidden>
-  <label for="k-key">Clash of Clans API key</label>
-  <input id="k-key" type="password" autocomplete="off" placeholder="paste your key" spellcheck="false">
-  <div class="row">
-    <div><label for="k-tag">Your clan tag</label><input id="k-tag" placeholder="#2ABC123" autocomplete="off"></div>
-    <div><label for="k-search">Opponent tag (only if your war log is private)</label><input id="k-search" placeholder="optional" autocomplete="off"></div>
-    <button class="go" id="k-go">Track war</button>
+  <div id="k-setup">
+    <label for="k-key">Clash of Clans API key</label>
+    <input id="k-key" type="password" autocomplete="off" placeholder="paste your key" spellcheck="false">
+    <div class="row">
+      <div><label for="k-tag">Your clan tag</label><input id="k-tag" placeholder="#2ABC123" autocomplete="off"></div>
+      <div><label for="k-search">Opponent tag (only if your war log is private)</label><input id="k-search" placeholder="optional" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <div><label for="k-sec">Refresh every</label><input id="k-sec" type="number" min="0.5" value="2" style="width:64px"> seconds</div>
+      <div>
+        <button class="go" id="k-go">Track war</button>
+        <button class="close-panel" id="k-close">Hide setup</button>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" id="k-live" checked> Auto-refresh</label>
+    <label class="chk"><input type="checkbox" id="k-remember"> Remember my key on this device</label>
+    <details><summary>How to get a key</summary>
+      <p>Create a key at developer.clashofclans.com and set its allowed IP address to <b>45.79.218.79</b>. Supercell's own API blocks requests from web pages, so this page goes through the RoyaleAPI proxy. You can also use your own proxy or API base url below.</p>
+    </details>
+    <details><summary>API address</summary>
+      <label for="k-api">Proxy or API base URL</label>
+      <input id="k-api" value="https://worker-winter-bonus-4f8a.zhongeric02.workers.dev/">
+    </details>
+    <p id="k-status" role="status"></p>
   </div>
-  <label class="chk"><input type="checkbox" id="k-live" checked> Refresh every <input id="k-sec" type="number" min="1" value="2" style="width:64px"> seconds</label>
-  <label class="chk"><input type="checkbox" id="k-remember"> Remember my key on this device</label>
-  <details><summary>How to get a key</summary>
-    <p>Create a key at developer.clashofclans.com and set its allowed IP address to <b>45.79.218.79</b>. Supercell's own API blocks requests from web pages, so this page goes through the RoyaleAPI proxy. You can also use your own proxy or API base url below.</p>
-  </details>
-  <details><summary>API address</summary>
-    <label for="k-api">Proxy or API base URL</label>
-    <input id="k-api" value="https://worker-winter-bonus-4f8a.zhongeric02.workers.dev/">
-  </details>
-  <p id="k-status" role="status"></p>
 </section>
 
 <div id="out" aria-live="polite"></div>
@@ -171,7 +166,7 @@ function forecast({us,opp,apm,next,esports}){
 }
 
 // ---- Rendering ----
-const esc = s => String(s).replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function render(d){
   const {us,opp,esports}=d, f=forecast(d), lead=outcome(us,opp,esports);
@@ -200,7 +195,7 @@ function render(d){
       if(f.time){
         h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)}).`:`<b>no time target</b>.`}</div>`;
       } else {
-        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:""}</div>`;
+        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:\"Enter both average times for a target.\"}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:\"\"}</div>`;
       }
     }
     if(d.apm!==1) h+=`<p class="note lose">This war has ${d.apm} attacks per member; turn order may not alternate, so treat this as a rough guide.</p>`;
@@ -223,42 +218,6 @@ sideForm("m-us","u","Your clan"); sideForm("m-opp","o","Opponent");
 const readSide=p=>({name:$(p+"-name").value||"Clan",size:Math.max(1,+$(p+"-size").value||1),stars:+$(p+"-stars").value||0,pct:+$(p+"-pct").value||0,used:+$(p+"-used").value||0,avg:parseTime($(p+"-avg").value)});
 function manual(){ render({us:readSide("u"),opp:readSide("o"),apm:Math.max(1,+$("m-apm").value||1),next:$("m-next").value,esports:$("m-esports").checked}); }
 $("p-manual").addEventListener("input",manual);
-
-// ---- Automatic mode ----
-let timer=null;
-const normTag=t=>{t=t.trim().toUpperCase(); return t&&!t.startsWith("#")?"#"+t:t;};
-function status(msg,err){ const s=$("status"); s.textContent=msg; s.className=err?"err":""; }
-function statusHtml(html){ const s=$("status"); s.innerHTML=html; s.className="err"; }
-async function pull(){
-  const base=($("a-api").value||DEFAULT_API_BASE).replace(/\/+$/,"" );
-  const tag=normTag($("a-tag").value);
-  if(!base) return status("Add your bot's address under “Bot address” first.",true);
-  if(!tag) return status("Enter your clan tag.",true);
-  const search=normTag($("a-search").value);
-  if(location.protocol==="https:" && base.startsWith("http:")){
-    clearInterval(timer);
-    return statusHtml(`Browsers block this https page from reading your bot's http address. Open <a href="${esc(base)}/">${esc(base)}/</a> instead — the bot serves this same page there and Bot mode still works.`);
-  }
-  const url=`${base}/api/war?clan=${encodeURIComponent(tag)}${search?`&search=${encodeURIComponent(search)}`:""}`;
-  try{
-    const res=await fetch(url), j=await res.json();
-    if(!j.ok){ status(j.error||"No war found.",true); return; }
-    status(`Updated ${new Date().toLocaleTimeString()}`);
-    const left=j.endTime?Math.max(0,(j.endTime-Date.now())/1000):null;
-    render({us:j.us,opp:j.opp,apm:j.attacksPerMember||1,next:j.nextAttacker||"us",esports:j.esports,
-      meta:`${j.state==="preparation"?"Preparation day":j.state==="inWar"?"Battle day":j.state}${left!=null&&j.state==="inWar"?` · ${fmt(left)} left`:""}${j.esports?" · esports":""}`});
-  }catch(e){
-    status("Couldn't reach the bot. Check the address, that it's running, and that it's served over https if this page is.",true);
-  }
-}
-function startAuto(){
-  clearInterval(timer); store.set("tag",$("a-tag").value); store.set("search",$("a-search").value); store.set("api",$("a-api").value);
-  pull();
-  if($("a-live").checked) timer=setInterval(pull,Math.max(2,+$("a-sec").value||5)*1000);
-}
-$("a-go").addEventListener("click",startAuto);
-$("a-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startAuto(); });
-$("a-tag").value=store.get("tag"); $("a-search").value=store.get("search"); $("a-api").value=store.get("api")||DEFAULT_API_BASE;
 
 // ---- API key mode (calls the Clash of Clans API directly, via a CORS-friendly proxy) ----
 function cocTime(ts){ const m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/.exec(ts||""); return m?Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}.${m[7]}Z`):null; }
@@ -323,27 +282,32 @@ async function keyPull(){
     st("Couldn't reach the API address. Check your connection and the API address; the proxy may also be down or blocking browser requests.",true);
   }
 }
+let timer=null;
+const normTag=t=>{t=t.trim().toUpperCase(); return t&&!t.startsWith("#")?"#"+t:t;};
 function startKey(){
   clearInterval(timer);
   store.set("ktag",$("k-tag").value); store.set("ksearch",$("k-search").value); store.set("kapi",$("k-api").value);
   store.set("key",$("k-remember").checked?$("k-key").value.trim():"");
   keyPull();
-  if($("k-live").checked) timer=setInterval(keyPull,Math.max(3,+$("k-sec").value||10)*1000);
+  if($("k-live").checked) timer=setInterval(keyPull,Math.max(0.5,+$("k-sec").value||2)*1000);
 }
 $("k-go").addEventListener("click",startKey);
 $("k-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
+$("k-key").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
+$("k-close").addEventListener("click",()=>{ $("k-setup").classList.toggle("setup-collapsed"); });
 $("k-key").value = store.get("key") || DEFAULT_API_KEY;
 $("k-remember").checked = !!$("k-key").value;
 $("k-tag").value=store.get("ktag"); $("k-search").value=store.get("ksearch"); if(store.get("kapi")) $("k-api").value=store.get("kapi");
 
 // ---- Tabs ----
 function tab(which){
-  for(const n of ["manual","auto","key"]){ $("t-"+n).setAttribute("aria-selected",n===which); $("p-"+n).hidden=n!==which; }
+  for(const n of ["manual","key"]){ $("t-"+n).setAttribute("aria-selected",n===which); $("p-"+n).hidden=n!==which; }
   $("out").innerHTML=""; clearInterval(timer);
+  $("k-setup").classList.remove("setup-collapsed");
   if(which==="manual") manual();
 }
-$("t-manual").onclick=()=>tab("manual"); $("t-auto").onclick=()=>tab("auto"); $("t-key").onclick=()=>tab("key");
-manual();
+$("t-manual").onclick=()=>tab("manual"); $("t-key").onclick=()=>tab("key");
+tab("key");
 </script>
 </body>
 </html>
