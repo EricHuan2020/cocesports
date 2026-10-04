@@ -32,15 +32,20 @@ input,select{width:100%;font:inherit;padding:7px 9px;border:1px solid var(--line
 .chk input{width:auto}
 button.go{font:600 1.1rem 'Barlow Condensed',sans-serif;padding:9px 22px;border:0;border-radius:6px;background:var(--gold);color:#13213c;cursor:pointer}
 button.close-panel{font:600 1rem 'Barlow Condensed',sans-serif;padding:6px 14px;border:0;border-radius:6px;background:var(--mute);color:var(--paper);cursor:pointer;margin-left:10px}
+button.close-warning{font:600 0.9rem 'Barlow Condensed',sans-serif;padding:4px 12px;border:0;border-radius:4px;background:var(--ink);color:var(--paper);cursor:pointer;margin-left:auto}
 details{margin-top:12px;color:var(--mute);font-size:.9rem}
 #status{margin:10px 0 0;color:var(--mute);min-height:1.5em}
 #status.err{color:var(--lose)}
+.warning-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;color:#333}
+.warning-banner.hidden{display:none}
+.warning-banner strong{color:#ff6b35}
 #out{margin-top:18px}
 .score{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;text-align:center}
 .score .num{font-size:2.2rem;line-height:1.1}
 .score small{display:block;color:var(--mute);font:400 .9rem Barlow,sans-serif}
 .vs{color:var(--mute)}
 .lead{text-align:center;margin:6px 0 0;color:var(--mute)}
+.refresh-time{font-size:0.85rem;color:var(--mute);margin-top:8px;text-align:center}
 .verdict{margin-top:16px;border-top:3px solid var(--gold);padding-top:14px}
 .verdict h2{font-size:1.7rem}
 .opt{display:grid;grid-template-columns:90px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -76,6 +81,13 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 </section>
 
 <section class="panel" id="p-key" role="tabpanel" aria-labelledby="t-key" hidden>
+  <div class="warning-banner hidden" id="k-warning" role="alert">
+    <div style="flex:1">
+      <strong>⚠️ API Cache Delay:</strong> Clash of Clans API caches data for ~60 seconds. Attack results may take up to a minute to appear.
+    </div>
+    <button class="close-warning" aria-label="Close warning">✕</button>
+  </div>
+
   <div id="k-setup">
     <label for="k-key">Clash of Clans API key</label>
     <input id="k-key" type="password" autocomplete="off" placeholder="paste your key" spellcheck="false">
@@ -84,7 +96,7 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
       <div><label for="k-search">Opponent tag (only if your war log is private)</label><input id="k-search" placeholder="optional" autocomplete="off"></div>
     </div>
     <div class="row">
-      <div><label for="k-sec">Refresh every</label><input id="k-sec" type="number" min="0.5" value="2" style="width:64px"> seconds</div>
+      <div><label for="k-sec">Refresh every</label><input id="k-sec" type="number" min="0.5" value="10" style="width:64px"> seconds</div>
       <div>
         <button class="go" id="k-go">Track war</button>
         <button class="close-panel" id="k-close">Hide setup</button>
@@ -201,6 +213,9 @@ function render(d){
     if(d.apm!==1) h+=`<p class="note lose">This war has ${d.apm} attacks per member; turn order may not alternate, so treat this as a rough guide.</p>`;
     h+=`</div>`;
   }
+  if(d.lastRefresh){
+    h+=`<p class="refresh-time">Last updated: ${d.lastRefresh}</p>`;
+  }
   $("out").innerHTML=h+`</div>`;
 }
 
@@ -249,7 +264,8 @@ function normalizeWar(war,tag){
   return {us,opp,apm,next:whoNext(us,opp,apm),esports,meta:`${label}${war.state==="inWar"&&left!=null?` · ${fmt(left)} left`:""}${esports?" · esports":""}`};
 }
 async function cocGet(base,key,tag){
-  const r=await fetch(`${base}/v1/clans/${encodeURIComponent(tag)}/currentwar`,{headers:{Authorization:"Bearer "+key,Accept:"application/json"}});
+  const timestamp=Date.now();
+  const r=await fetch(`${base}/v1/clans/${encodeURIComponent(tag)}/currentwar?t=${timestamp}`,{headers:{Authorization:"Bearer "+key,Accept:"application/json"}});
   let j=null; try{ j=await r.json(); }catch{}
   return {status:r.status,j};
 }
@@ -276,7 +292,8 @@ async function keyPull(){
       return st(`API error${r.j?.reason?`: ${r.j.reason}`:` (${r.status})`}.`,true);
     }
     st(`Updated ${new Date().toLocaleTimeString()}`);
-    render(normalizeWar(war,tag));
+    const lastRefresh = new Date().toLocaleTimeString();
+    render({...normalizeWar(war,tag), lastRefresh});
   }catch(e){
     clearInterval(timer);
     st("Couldn't reach the API address. Check your connection and the API address; the proxy may also be down or blocking browser requests.",true);
@@ -288,13 +305,15 @@ function startKey(){
   clearInterval(timer);
   store.set("ktag",$("k-tag").value); store.set("ksearch",$("k-search").value); store.set("kapi",$("k-api").value);
   store.set("key",$("k-remember").checked?$("k-key").value.trim():"");
+  $("k-warning").classList.remove("hidden");
   keyPull();
-  if($("k-live").checked) timer=setInterval(keyPull,Math.max(0.5,+$("k-sec").value||2)*1000);
+  if($("k-live").checked) timer=setInterval(keyPull,Math.max(0.5,+$("k-sec").value||10)*1000);
 }
 $("k-go").addEventListener("click",startKey);
 $("k-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
 $("k-key").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
 $("k-close").addEventListener("click",()=>{ $("k-setup").classList.toggle("setup-collapsed"); });
+document.getElementById("k-warning").querySelector("button").addEventListener("click",()=>{ $("k-warning").classList.add("hidden"); });
 $("k-key").value = store.get("key") || DEFAULT_API_KEY;
 $("k-remember").checked = !!$("k-key").value;
 $("k-tag").value=store.get("ktag"); $("k-search").value=store.get("ksearch"); if(store.get("kapi")) $("k-api").value=store.get("kapi");
