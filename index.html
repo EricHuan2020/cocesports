@@ -99,7 +99,7 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
   <label class="chk"><input type="checkbox" id="k-live" checked> Refresh every <input id="k-sec" type="number" min="1" value="2" style="width:64px"> seconds</label>
   <label class="chk"><input type="checkbox" id="k-remember"> Remember my key on this device</label>
   <details><summary>How to get a key</summary>
-    <p>Create a key at developer.clashofclans.com and set its allowed IP address to <b>45.79.218.79</b>. Supercell's own API blocks requests from web pages, so this page goes through the RoyaleAPI proxy, which uses that fixed IP. The proxy sees your key, so use one made just for this.</p>
+    <p>Create a key at developer.clashofclans.com and set its allowed IP address to <b>45.79.218.79</b>. Supercell's own API blocks requests from web pages, so this page goes through the RoyaleAPI proxy. You can also use your own proxy or API base url below.</p>
   </details>
   <details><summary>API address</summary>
     <label for="k-api">Proxy or API base URL</label>
@@ -115,6 +115,9 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 <script>
 // Your bot's address (bot-hosting.net panel > Network). Can also be changed under "Bot address" on the page.
 const DEFAULT_API_BASE = "http://fi3.bot-hosting.net:25329";
+// Optional default key for deployments that intentionally want a shared key.
+// Keep this empty in source control unless you are intentionally managing a non-secret deployment key.
+const DEFAULT_API_KEY = (typeof window !== "undefined" && window.COC_DEFAULT_KEY) || "";
 
 const $ = id => document.getElementById(id);
 const store = { get(k){ try{ return localStorage.getItem(k) || ""; }catch{ return ""; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
@@ -167,7 +170,7 @@ function forecast({us,opp,apm,next,esports}){
 }
 
 // ---- Rendering ----
-const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s).replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function render(d){
   const {us,opp,esports}=d, f=forecast(d), lead=outcome(us,opp,esports);
@@ -179,7 +182,7 @@ function render(d){
   if(f.kind==="over"){
     h+=`<div class="verdict"><h2>War complete</h2><p>${{us:esc(us.name)+" wins",opp:esc(opp.name)+" wins",draw:"Draw"}[lead]}.</p></div>`;
   } else if(f.kind==="many"){
-    h+=`<div class="verdict"><h2>${f.total} attacks left in total</h2><p>Too many to forecast exactly. ${us.stars!==opp.stars?`Star gap: ${Math.abs(us.stars-opp.stars)}.`:`Stars are level.`} Come back when two or fewer remain.</p></div>`;
+    h+=`<div class="verdict"><h2>${f.total} attacks left in total</h2><p>Too many to forecast exactly. ${us.stars!==opp.stars?`Star gap: ${Math.abs(us.stars-opp.stars)}.`:`Stars are level.`} Come back when fewer remain.</p></div>`;
   } else {
     const A=f.att==="us"?us:opp, B=f.att==="us"?opp:us;
     h+=`<div class="verdict"><h2>${esc(A.name)} attacks next</h2>
@@ -194,9 +197,9 @@ function render(d){
     }
     if(esports){
       if(f.time){
-        h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)} ties the average).`:`— no time is fast enough to win on average.`}</div>`;
+        h+=`<div class="timebox"><b>Time tiebreak.</b> If stars and % end level, ${esc(A.name)} needs an attack of ${f.time.win>=0?`<b>${fmt(f.time.win)} or faster</b> to win (exactly ${fmt(f.time.tie)}):":"<b>no time target</b>"}</div>`;
       } else {
-        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average so far: ${f.edge==="attacker"?esc(A.name):esc(B.name)}.`:""}</div>`;
+        h+=`<div class="timebox"><b>Time tiebreak.</b> ${f.oppAfter?`${esc(B.name)}'s final average isn't known yet, so no time target.`:"Enter both average times for a target."}${f.edge?` Faster average means ${f.edge==='attacker'?esc(A.name):esc(B.name)} gets the tie-break.`:""}</div>`;
       }
     }
     if(d.apm!==1) h+=`<p class="note lose">This war has ${d.apm} attacks per member; turn order may not alternate, so treat this as a rough guide.</p>`;
@@ -226,14 +229,14 @@ const normTag=t=>{t=t.trim().toUpperCase(); return t&&!t.startsWith("#")?"#"+t:t
 function status(msg,err){ const s=$("status"); s.textContent=msg; s.className=err?"err":""; }
 function statusHtml(html){ const s=$("status"); s.innerHTML=html; s.className="err"; }
 async function pull(){
-  const base=($("a-api").value||DEFAULT_API_BASE).replace(/\/+$/,"");
+  const base=($("a-api").value||DEFAULT_API_BASE).replace(/\/+$/,"" );
   const tag=normTag($("a-tag").value);
   if(!base) return status("Add your bot's address under “Bot address” first.",true);
   if(!tag) return status("Enter your clan tag.",true);
   const search=normTag($("a-search").value);
   if(location.protocol==="https:" && base.startsWith("http:")){
     clearInterval(timer);
-    return statusHtml(`Browsers block this https page from reading your bot's http address. Open <a href="${esc(base)}/">${esc(base)}/</a> instead — the bot serves this same page there and Bot mode works.`);
+    return statusHtml(`Browsers block this https page from reading your bot's http address. Open <a href="${esc(base)}/">${esc(base)}/</a> instead — the bot serves this same page there and Bot mode still works.`);
   }
   const url=`${base}/api/war?clan=${encodeURIComponent(tag)}${search?`&search=${encodeURIComponent(search)}`:""}`;
   try{
@@ -292,7 +295,7 @@ async function cocGet(base,key,tag){
 }
 async function keyPull(){
   const st=(m,e)=>{ const el=$("k-status"); el.textContent=m; el.className=e?"err":""; };
-  const base=($("k-api").value.trim()||"https://cocproxy.royaleapi.dev").replace(/\/+$/,"");
+  const base=($("k-api").value.trim()||"https://cocproxy.royaleapi.dev").replace(/\/+$/,"" );
   const key=$("k-key").value.trim(), tag=normTag($("k-tag").value), search=normTag($("k-search").value);
   if(!key) return st("Paste your API key.",true);
   if(!tag) return st("Enter your clan tag.",true);
@@ -305,7 +308,7 @@ async function keyPull(){
     }
     if(!war){
       clearInterval(timer);
-      if(r.status===403&&r.j?.reason==="accessDenied.invalidIp") return st(`The API rejected the key's IP. Edit the key at developer.clashofclans.com and allow 45.79.218.79 (or the IP of the address you set under API address).`,true);
+      if(r.status===403&&r.j?.reason==="accessDenied.invalidIp") return st(`The API rejected the key's IP. Edit the key at developer.clashofclans.com and allow 45.79.218.79 (or the IP of the address your proxy uses).`,true);
       if(r.status===403) return st("Access denied. Check the key, or the clan's war log is private — add the opponent's tag.",true);
       if(r.status===404) return st("No clan with that tag.",true);
       if(r.status===429) return st("Rate limited by the API. Try again in a moment or refresh less often.",true);
@@ -328,7 +331,8 @@ function startKey(){
 }
 $("k-go").addEventListener("click",startKey);
 $("k-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
-$("k-key").value=store.get("key"); $("k-remember").checked=!!$("k-key").value;
+$("k-key").value = store.get("key") || DEFAULT_API_KEY;
+$("k-remember").checked = !!$("k-key").value;
 $("k-tag").value=store.get("ktag"); $("k-search").value=store.get("ksearch"); if(store.get("kapi")) $("k-api").value=store.get("kapi");
 
 // ---- Tabs ----
