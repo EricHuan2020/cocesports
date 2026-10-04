@@ -57,7 +57,8 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
 
 <div role="tablist" aria-label="Mode">
   <button role="tab" id="t-manual" aria-selected="true" aria-controls="p-manual">Manual</button>
-  <button role="tab" id="t-auto" aria-selected="false" aria-controls="p-auto">Automatic</button>
+  <button role="tab" id="t-auto" aria-selected="false" aria-controls="p-auto">Bot</button>
+  <button role="tab" id="t-key" aria-selected="false" aria-controls="p-key">API key</button>
 </div>
 
 <section class="panel" id="p-manual" role="tabpanel" aria-labelledby="t-manual">
@@ -87,13 +88,33 @@ details{margin-top:12px;color:var(--mute);font-size:.9rem}
   <p id="status" role="status"></p>
 </section>
 
+<section class="panel" id="p-key" role="tabpanel" aria-labelledby="t-key" hidden>
+  <label for="k-key">Clash of Clans API key</label>
+  <input id="k-key" type="password" autocomplete="off" placeholder="paste your key" spellcheck="false">
+  <div class="row">
+    <div><label for="k-tag">Your clan tag</label><input id="k-tag" placeholder="#2ABC123" autocomplete="off"></div>
+    <div><label for="k-search">Opponent tag (only if your war log is private)</label><input id="k-search" placeholder="optional" autocomplete="off"></div>
+    <button class="go" id="k-go">Track war</button>
+  </div>
+  <label class="chk"><input type="checkbox" id="k-live" checked> Refresh every <input id="k-sec" type="number" min="3" value="10" style="width:64px"> seconds</label>
+  <label class="chk"><input type="checkbox" id="k-remember"> Remember my key on this device</label>
+  <details><summary>How to get a key</summary>
+    <p>Create a key at developer.clashofclans.com and set its allowed IP address to <b>45.79.218.79</b>. Supercell's own API blocks requests from web pages, so this page goes through the RoyaleAPI proxy, which uses that fixed IP. The proxy sees your key, so use one made just for this.</p>
+  </details>
+  <details><summary>API address</summary>
+    <label for="k-api">Proxy or API base URL</label>
+    <input id="k-api" value="https://cocproxy.royaleapi.dev">
+  </details>
+  <p id="k-status" role="status"></p>
+</section>
+
 <div id="out" aria-live="polite"></div>
 <p class="note">Assumes the next hit lands on a base not yet attacked, so stars add up and the team's destruction % rises by (hit % ÷ team size). Exact forecasts start once two or fewer attacks remain.</p>
 </main>
 
 <script>
-// Set this to your bot's public address, or fill it in under "Bot address" on the page.
-const DEFAULT_API_BASE = "";
+// Your bot's address (bot-hosting.net panel > Network). Can also be changed under "Bot address" on the page.
+const DEFAULT_API_BASE = "http://fi3.bot-hosting.net:25329";
 
 const $ = id => document.getElementById(id);
 const store = { get(k){ try{ return localStorage.getItem(k) || ""; }catch{ return ""; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
@@ -203,12 +224,17 @@ $("p-manual").addEventListener("input",manual);
 let timer=null;
 const normTag=t=>{t=t.trim().toUpperCase(); return t&&!t.startsWith("#")?"#"+t:t;};
 function status(msg,err){ const s=$("status"); s.textContent=msg; s.className=err?"err":""; }
+function statusHtml(html){ const s=$("status"); s.innerHTML=html; s.className="err"; }
 async function pull(){
   const base=($("a-api").value||DEFAULT_API_BASE).replace(/\/+$/,"");
   const tag=normTag($("a-tag").value);
   if(!base) return status("Add your bot's address under “Bot address” first.",true);
   if(!tag) return status("Enter your clan tag.",true);
   const search=normTag($("a-search").value);
+  if(location.protocol==="https:" && base.startsWith("http:")){
+    clearInterval(timer);
+    return statusHtml(`Browsers block this https page from reading your bot's http address. Open <a href="${esc(base)}/">${esc(base)}/</a> instead — the bot serves this same page there and Bot mode works.`);
+  }
   const url=`${base}/api/war?clan=${encodeURIComponent(tag)}${search?`&search=${encodeURIComponent(search)}`:""}`;
   try{
     const res=await fetch(url), j=await res.json();
@@ -230,13 +256,88 @@ $("a-go").addEventListener("click",startAuto);
 $("a-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startAuto(); });
 $("a-tag").value=store.get("tag"); $("a-search").value=store.get("search"); $("a-api").value=store.get("api")||DEFAULT_API_BASE;
 
+// ---- API key mode (calls the Clash of Clans API directly, via a CORS-friendly proxy) ----
+function cocTime(ts){ const m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/.exec(ts||""); return m?Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}.${m[7]}Z`):null; }
+function warSide(s){
+  const atk=(s?.members||[]).flatMap(m=>m.attacks||[]);
+  const tot=atk.reduce((a,x)=>a+(typeof x.duration==="number"?x.duration:0),0);
+  return {name:s?.name||"Clan",size:s?.members?.length||0,stars:s?.stars||0,pct:s?.destructionPercentage||0,used:s?.attacks||0,avg:atk.length?tot/atk.length:null,orders:atk.map(a=>a.order||0).sort((a,b)=>a-b)};
+}
+// Same alternation logic as computeClinchInfo in trackwar.js.
+function whoNext(us,opp,apm){
+  const ur=us.size*apm-us.used, or=opp.size*apm-opp.used;
+  if(ur+or===1) return ur===1?"us":"opp";
+  if(ur===1&&or===1){
+    const all=[...us.orders.map(o=>["us",o]),...opp.orders.map(o=>["opp",o])].sort((a,b)=>a[1]-b[1]);
+    if(!all.length) return "us";
+    const first=all[0][0], other=first==="us"?"opp":"us";
+    return (all.length+1)%2===1?first:other;
+  }
+  return "us";
+}
+function normalizeWar(war,tag){
+  const flip=war.clan?.tag!==tag;
+  const us=warSide(flip?war.opponent:war.clan), opp=warSide(flip?war.clan:war.opponent);
+  const apm=war.attacksPerMember||1;
+  const esports=Boolean(war.battleModifier)&&war.battleModifier!=="none";
+  const endTime=cocTime(war.endTime);
+  const left=endTime?Math.max(0,(endTime-Date.now())/1000):null;
+  const label=war.state==="preparation"?"Preparation day":war.state==="inWar"?"Battle day":"War ended";
+  return {us,opp,apm,next:whoNext(us,opp,apm),esports,meta:`${label}${war.state==="inWar"&&left!=null?` · ${fmt(left)} left`:""}${esports?" · esports":""}`};
+}
+async function cocGet(base,key,tag){
+  const r=await fetch(`${base}/v1/clans/${encodeURIComponent(tag)}/currentwar`,{headers:{Authorization:"Bearer "+key,Accept:"application/json"}});
+  let j=null; try{ j=await r.json(); }catch{}
+  return {status:r.status,j};
+}
+async function keyPull(){
+  const st=(m,e)=>{ const el=$("k-status"); el.textContent=m; el.className=e?"err":""; };
+  const base=($("k-api").value.trim()||"https://cocproxy.royaleapi.dev").replace(/\/+$/,"");
+  const key=$("k-key").value.trim(), tag=normTag($("k-tag").value), search=normTag($("k-search").value);
+  if(!key) return st("Paste your API key.",true);
+  if(!tag) return st("Enter your clan tag.",true);
+  try{
+    const r=await cocGet(base,key,tag);
+    let war=r.status===200&&r.j&&r.j.state!=="notInWar"?r.j:null;
+    if(!war&&search){
+      const r2=await cocGet(base,key,search);
+      if(r2.status===200&&r2.j&&(r2.j.clan?.tag===tag||r2.j.opponent?.tag===tag)&&r2.j.state!=="notInWar") war=r2.j;
+    }
+    if(!war){
+      clearInterval(timer);
+      if(r.status===403&&r.j?.reason==="accessDenied.invalidIp") return st(`The API rejected the key's IP. Edit the key at developer.clashofclans.com and allow 45.79.218.79 (or the IP of the address you set under API address).`,true);
+      if(r.status===403) return st("Access denied. Check the key, or the clan's war log is private — add the opponent's tag.",true);
+      if(r.status===404) return st("No clan with that tag.",true);
+      if(r.status===429) return st("Rate limited by the API. Try again in a moment or refresh less often.",true);
+      if(r.status===200) return st("That clan is not in a war right now.",true);
+      return st(`API error${r.j?.reason?`: ${r.j.reason}`:` (${r.status})`}.`,true);
+    }
+    st(`Updated ${new Date().toLocaleTimeString()}`);
+    render(normalizeWar(war,tag));
+  }catch(e){
+    clearInterval(timer);
+    st("Couldn't reach the API address. Check your connection and the API address; the proxy may also be down or blocking browser requests.",true);
+  }
+}
+function startKey(){
+  clearInterval(timer);
+  store.set("ktag",$("k-tag").value); store.set("ksearch",$("k-search").value); store.set("kapi",$("k-api").value);
+  store.set("key",$("k-remember").checked?$("k-key").value.trim():"");
+  keyPull();
+  if($("k-live").checked) timer=setInterval(keyPull,Math.max(3,+$("k-sec").value||10)*1000);
+}
+$("k-go").addEventListener("click",startKey);
+$("k-tag").addEventListener("keydown",e=>{ if(e.key==="Enter") startKey(); });
+$("k-key").value=store.get("key"); $("k-remember").checked=!!$("k-key").value;
+$("k-tag").value=store.get("ktag"); $("k-search").value=store.get("ksearch"); if(store.get("kapi")) $("k-api").value=store.get("kapi");
+
 // ---- Tabs ----
 function tab(which){
-  for(const n of ["manual","auto"]){ $("t-"+n).setAttribute("aria-selected",n===which); $("p-"+n).hidden=n!==which; }
+  for(const n of ["manual","auto","key"]){ $("t-"+n).setAttribute("aria-selected",n===which); $("p-"+n).hidden=n!==which; }
   $("out").innerHTML=""; clearInterval(timer);
   if(which==="manual") manual();
 }
-$("t-manual").onclick=()=>tab("manual"); $("t-auto").onclick=()=>tab("auto");
+$("t-manual").onclick=()=>tab("manual"); $("t-auto").onclick=()=>tab("auto"); $("t-key").onclick=()=>tab("key");
 manual();
 </script>
 </body>
